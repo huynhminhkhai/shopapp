@@ -1,8 +1,10 @@
 package com.huynhminhkhai.shopapp.controllers;
 
 import com.huynhminhkhai.shopapp.dtos.CategoryDTO;
-import com.huynhminhkhai.shopapp.dtos.ProductDTO;
+import com.huynhminhkhai.shopapp.models.Category;
+import com.huynhminhkhai.shopapp.services.CategoryService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,62 +25,69 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("${api.prefix}/categories")
+@RequiredArgsConstructor
 public class CategoryController {
 
-    @GetMapping
-    public ResponseEntity<String> getAllCategories(){
-        return ResponseEntity.ok("successfully");
-    }
+    private final CategoryService categoryService;
+    //gọi catecategoryModel để chuyển đổi từ CategoryDTO qua
+    Category categoryModel = new Category();
 
-    @PostMapping(value = "",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createCategory(
             @Valid @ModelAttribute CategoryDTO categoryDTO,
-//            @RequestPart("file") MultipartFile file,
             BindingResult result
-    ){
-        try {
-            if (result.hasErrors()){
-                List<String> errorMessages = result.getFieldErrors()
-                        .stream()
-                        .map(FieldError::getDefaultMessage)
-                        .toList();
-                return  ResponseEntity.badRequest().body(errorMessages);
-            }
+    ) {
+        if (result.hasErrors()) {
+            List<String> errorMessages = result.getFieldErrors()
+                    .stream()
+                    .map(FieldError::getDefaultMessage)
+                    .toList();
+            return ResponseEntity.badRequest().body(errorMessages);
+        }
 
-            List<MultipartFile> files = categoryDTO.getFiles();
-            files = files == null ? new ArrayList<>() : files;
-            for (MultipartFile file : files){
-                if (file.getSize() == 0 ){
-                    continue;
-                }
-                if (file.getSize() > 10 * 1024 * 1024 ){ // bé hơn 10mb
-                    return  ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+        try {
+            MultipartFile file = categoryDTO.getFile(); // Chỉ lấy một file ảnh
+            if (file != null && file.getSize() > 0) {
+                // Kiểm tra kích thước file
+                if (file.getSize() > 10 * 1024 * 1024) { // nhỏ hơn 10MB
+                    return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                             .body("File is too large! Maximum size is 10MB");
                 }
 
+                // Kiểm tra loại file
                 String contentType = file.getContentType();
                 if (contentType == null || !contentType.startsWith("image/")) {
                     return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
                             .body("File must be an image");
                 }
-                String fileName = storeFile(file);
+                // Chuyển đổi từ DTO sang Model
+                categoryModel.setName(categoryDTO.getName());
+                // Lưu file và lấy đường dẫn
+                categoryModel.setImageUrl(storeFile(file)); // Gán đường dẫn ảnh vào imageUrl
             }
 
-            return ResponseEntity.ok("Product create successfully");
-        }catch (Exception e){
-            return  ResponseEntity.badRequest().body(e.getMessage());
+
+            // Gọi hàm service để lưu category
+            categoryService.createCategory(categoryModel);
+            return ResponseEntity.ok(categoryModel);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
     private String storeFile(MultipartFile file) throws IOException {
         String fileName = StringUtils.cleanPath(file.getOriginalFilename());
-        String unniqueFileName = UUID.randomUUID().toString()+ "_"+ fileName;
-        //java.nio.file
+        String uniqueFileName = UUID.randomUUID().toString() + "_" + fileName;
         Path uploadDir = Paths.get("Uploads/Images/Categories");
-        if (!Files.exists(uploadDir)){
+
+        if (!Files.exists(uploadDir)) {
             Files.createDirectories(uploadDir);
         }
-        Path destination = Paths.get(uploadDir.toString(), unniqueFileName);
+
+        Path destination = uploadDir.resolve(uniqueFileName);
         Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-        return unniqueFileName;
+
+        // Trả về đường dẫn để lưu vào cơ sở dữ liệu
+        return "/uploads/images/categories/" + uniqueFileName; // Đảm bảo rằng bạn có thể truy cập ảnh qua URL này
     }
 }

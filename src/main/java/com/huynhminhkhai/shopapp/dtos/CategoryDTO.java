@@ -20,6 +20,6 @@ public class CategoryDTO {
     @JsonProperty("image_url")
     private String imageUrl;
 
-    private List<MultipartFile> files;
+    private MultipartFile file;
 
 }

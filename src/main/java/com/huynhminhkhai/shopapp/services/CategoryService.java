@@ -15,6 +15,12 @@ public class CategoryService implements ICategoryService{
     private final CategoryRepository categoryRepository;
 
     @Override
+    public Category createCategory(Category category) {
+        // Lưu category mới vào database
+        return categoryRepository.save(category);
+    }
+
+    @Override
     public List<Category> getAllCategories() {
         // Truy vấn tất cả các danh mục từ database
         return categoryRepository.findAll();

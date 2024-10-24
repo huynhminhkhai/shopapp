@@ -5,6 +5,8 @@ import com.huynhminhkhai.shopapp.models.Category;
 import java.util.List;
 
 public interface ICategoryService {
+
+    Category createCategory(Category category);
     // Lấy tất cả danh mục
     List<Category> getAllCategories();
 
