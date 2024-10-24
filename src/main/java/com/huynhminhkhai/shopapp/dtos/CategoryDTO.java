@@ -5,6 +5,9 @@ import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -17,5 +20,6 @@ public class CategoryDTO {
     @JsonProperty("image_url")
     private String imageUrl;
 
+    private List<MultipartFile> files;
 
 }
