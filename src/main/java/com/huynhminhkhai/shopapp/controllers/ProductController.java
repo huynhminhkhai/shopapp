@@ -2,7 +2,11 @@ package com.huynhminhkhai.shopapp.controllers;
 
 import com.huynhminhkhai.shopapp.dtos.CategoryDTO;
 import com.huynhminhkhai.shopapp.dtos.ProductDTO;
+import com.huynhminhkhai.shopapp.models.Category;
+import com.huynhminhkhai.shopapp.models.Product;
+import com.huynhminhkhai.shopapp.services.ProductService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -11,7 +15,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,11 +26,32 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("${api.prefix}/products")
+@RequiredArgsConstructor
 public class ProductController {
-    @GetMapping("") // /id=
-    public ResponseEntity<String> getAllProducts(
-    ){
-        return  ResponseEntity.ok("Successfully");
+    private final ProductService productService;
+    // GET: Lấy tất cả sản phẩm
+    @GetMapping
+    public ResponseEntity<List<Product>> getAllProducts() {
+        List<Product> categories = productService.getAllProducts();
+        return ResponseEntity.ok(categories);
+    }
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getProductById(@PathVariable Long id) {
+        try {
+            Product product = productService.getProductById(id);
+            return ResponseEntity.ok(product);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
+    @GetMapping("/byCategory") //.../byCategory?categoryId=1
+    public ResponseEntity<?> getProductsByCategoryId(@RequestParam Long categoryId) {
+        try {
+            List<Product> products = productService.getProductsByCategoryId(categoryId);
+            return ResponseEntity.ok(products);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 
     @PostMapping(value = "",consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -44,29 +68,71 @@ public class ProductController {
                         .toList();
                 return  ResponseEntity.badRequest().body(errorMessages);
             }
-
-            List<MultipartFile> files = productDTO.getFiles();
-            files = files == null ? new ArrayList<>() : files;
-            for (MultipartFile file : files){
-                if (file.getSize() == 0 ){
-                    continue;
-                }
-                if (file.getSize() > 10 * 1024 * 1024 ){ // bé hơn 10mb
-                    return  ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+            MultipartFile file = productDTO.getFile(); // Chỉ lấy một file ảnh
+            if (file != null && file.getSize() > 0) {
+                // Kiểm tra kích thước file
+                if (file.getSize() > 10 * 1024 * 1024) { // nhỏ hơn 10MB
+                    return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
                             .body("File is too large! Maximum size is 10MB");
                 }
-
                 String contentType = file.getContentType();
                 if (contentType == null || !contentType.startsWith("image/")) {
                     return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
                             .body("File must be an image");
                 }
-                String fileName = storeFile(file);
+                productDTO.setImageUrl(storeFile(file));
             }
-
+            productService.createProduct(productDTO);
             return ResponseEntity.ok("Product create successfully");
         }catch (Exception e){
             return  ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateProduct(
+            @PathVariable Long id,
+            @Valid @ModelAttribute ProductDTO productDTO,
+            BindingResult result
+    ) {
+        if (result.hasErrors()) {
+            List<String> errorMessages = result.getFieldErrors()
+                    .stream()
+                    .map(FieldError::getDefaultMessage)
+                    .toList();
+            return ResponseEntity.badRequest().body(errorMessages);
+        }
+        try {
+            MultipartFile file = productDTO.getFile();
+            if (file != null && file.getSize() > 0) {
+                // Kiểm tra kích thước file và loại file
+                if (file.getSize() > 10 * 1024 * 1024) {
+                    return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                            .body("File is too large! Maximum size is 10MB");
+                }
+                String contentType = file.getContentType();
+                if (contentType == null || !contentType.startsWith("image/")) {
+                    return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                            .body("File must be an image");
+                }
+
+                // Cập nhật URL hình ảnh
+                productDTO.setImageUrl(storeFile(file));
+            }
+            Product updateProduct = productService.updateProduct(id, productDTO);
+            return ResponseEntity.ok(updateProduct);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
+        try {
+            productService.deleteProduct(id);
+            return ResponseEntity.ok("Product deleted successfully.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
     private String storeFile(MultipartFile file) throws IOException {
