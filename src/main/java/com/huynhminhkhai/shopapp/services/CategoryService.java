@@ -1,5 +1,6 @@
 package com.huynhminhkhai.shopapp.services;
 
+import com.huynhminhkhai.shopapp.dtos.CategoryDTO;
 import com.huynhminhkhai.shopapp.models.Category;
 import com.huynhminhkhai.shopapp.repositories.CategoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -15,9 +16,12 @@ public class CategoryService implements ICategoryService{
     private final CategoryRepository categoryRepository;
 
     @Override
-    public Category createCategory(Category category) {
+    public Category createCategory(CategoryDTO categoryDTO) {
         // Lưu category mới vào database
-        return categoryRepository.save(category);
+        Category newCategory = Category.builder()
+                .name(categoryDTO.getName())
+                .imageUrl(categoryDTO.getImageUrl()).build();
+        return categoryRepository.save(newCategory);
     }
 
     @Override
@@ -33,14 +37,20 @@ public class CategoryService implements ICategoryService{
     }
 
     @Override
-    public Category updateCategory(Long categoryId, Category category) {
+    public Category updateCategory(Long categoryId, CategoryDTO categoryDTO) {
         Category existingCategory = getCategoryById(categoryId);
-        existingCategory.setName(category.getName());
-        return existingCategory;
+        // Cập nhật tên mới
+        existingCategory.setName(categoryDTO.getName());
+        // Nếu imageUrl mới không phải là null, cập nhật imageUrl; ngược lại, giữ nguyên giá trị cũ
+        if (categoryDTO.getImageUrl() != null) {
+            existingCategory.setImageUrl(categoryDTO.getImageUrl());
+        }
+        // Lưu đối tượng đã cập nhật vào cơ sở dữ liệu
+        return categoryRepository.save(existingCategory);
     }
 
     @Override
-    public void deleteCategory(Long id) {
-        categoryRepository.deleteById(id);
+    public void deleteCategory(Long categoryId) {
+        categoryRepository.deleteById(categoryId);
     }
 }
