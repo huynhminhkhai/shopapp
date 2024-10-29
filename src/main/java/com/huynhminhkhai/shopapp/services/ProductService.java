@@ -21,7 +21,7 @@ public class ProductService implements IProductService {
     @Override
     public Product createProduct(ProductDTO productDTO) {
         // Kiểm tra xem category có tồn tại không
-        Category category = categoryRepository.findById(productDTO.getCategoryId())
+        Category existingCategory = categoryRepository.findById(productDTO.getCategoryId())
                 .orElseThrow(() -> new RuntimeException ("Cannot find category with id: " + productDTO.getCategoryId()));
 
         // Tạo sản phẩm mới từ DTO
@@ -30,9 +30,8 @@ public class ProductService implements IProductService {
                 .description(productDTO.getDescription())
                 .price(productDTO.getPrice())
                 .imageUrl(productDTO.getImageUrl())
-                .category(category)
+                .category(existingCategory)
                 .build();
-
         return productRepository.save(newProduct);
     }
 
@@ -50,18 +49,20 @@ public class ProductService implements IProductService {
     @Override
     public Product updateProduct(Long productId, ProductDTO productDTO) {
         Product existingProduct = getProductById(productId);
+        if (existingProduct != null){
+            existingProduct.setName(productDTO.getName());
+            existingProduct.setDescription(productDTO.getDescription());
+            existingProduct.setPrice(productDTO.getPrice());
+            existingProduct.setImageUrl(productDTO.getImageUrl());
 
-        existingProduct.setName(productDTO.getName());
-        existingProduct.setDescription(productDTO.getDescription());
-        existingProduct.setPrice(productDTO.getPrice());
-        existingProduct.setImageUrl(productDTO.getImageUrl());
-
-        // Kiểm tra xem category có tồn tại không và cập nhật nếu có
-        if (productDTO.getCategoryId() != null) {
-            Category category = categoryRepository.findById(productDTO.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Cannot find category with id: " + productDTO.getCategoryId()));
-            existingProduct.setCategory(category);
+            // Kiểm tra xem category có tồn tại không và cập nhật nếu có
+            if (productDTO.getCategoryId() != null) {
+                Category existingCategory = categoryRepository.findById(productDTO.getCategoryId())
+                        .orElseThrow(() -> new RuntimeException("Cannot find category with id: " + productDTO.getCategoryId()));
+                existingProduct.setCategory(existingCategory);
+            }
         }
+
 
         return productRepository.save(existingProduct);
     }

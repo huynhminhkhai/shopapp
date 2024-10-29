@@ -7,27 +7,37 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
-public class UserService implements IUserService{
+public class UserService implements IUserService {
 
     private final UserRepository userRepository;
+
     @Override
     public User createUser(UserDTO userDTO) {
         String email = userDTO.getEmail();
-        if(userRepository.existsByEmail(email)){
+        if (userRepository.existsByEmail(email)) {
             throw new DataIntegrityViolationException("Email đã tồn tại");
         }
         User newUser = User.builder()
                 .name(userDTO.getName())
-                .email(userDTO.getEmail())
-                .password(userDTO.getPassword())
+                .email(email)
+                .password(userDTO.getPassword())  // Mã hóa mật khẩu
                 .build();
         return userRepository.save(newUser);
     }
 
     @Override
     public String login(String email, String password) {
-        return null;
+        Optional<User> optionalUser = Optional.ofNullable(userRepository.findByEmail(email));
+
+        if (optionalUser.isPresent() && password.equals(optionalUser.get().getPassword())) {
+            return "Đăng nhập thành công!";
+        } else {
+            return "Email hoặc mật khẩu không đúng";
+        }
     }
+
 }
