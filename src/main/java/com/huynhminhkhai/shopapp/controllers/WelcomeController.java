@@ -1,8 +1,12 @@
 package com.huynhminhkhai.shopapp.controllers;
 
 import com.huynhminhkhai.shopapp.dtos.CategoryDTO;
+import com.huynhminhkhai.shopapp.dtos.WelcomeDTO;
 import com.huynhminhkhai.shopapp.models.Category;
+import com.huynhminhkhai.shopapp.models.Welcome;
+import com.huynhminhkhai.shopapp.repositories.WelcomeRepository;
 import com.huynhminhkhai.shopapp.services.CategoryService;
+import com.huynhminhkhai.shopapp.services.WelcomeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.UrlResource;
@@ -20,22 +24,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("${api.prefix}/categories")
+@RequestMapping("${api.prefix}/welcomes")
 @RequiredArgsConstructor
-public class CategoryController {
-
-    private final CategoryService categoryService;
-    //gọi catecategoryModel để chuyển đổi từ CategoryDTO qua
+public class WelcomeController {
+    private final WelcomeService welcomeService;
 
     @GetMapping("/images/{imageName}")
     public ResponseEntity<?> viewImage(@PathVariable String imageName) {
         try {
-            java.nio.file.Path imagePath = Paths.get("Uploads/Images/Categories/" + imageName);
+            java.nio.file.Path imagePath = Paths.get("Uploads/Images/Welcomes/" + imageName);
             UrlResource resource = new UrlResource(imagePath.toUri());
 
             if (resource.exists()) {
@@ -50,10 +52,10 @@ public class CategoryController {
         }
     }
 
-    //Category categoryModel = new Category();
+
     @PostMapping(value = "", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> createCategory(
-            @Valid @ModelAttribute CategoryDTO categoryDTO,
+    public ResponseEntity<?> createWelcome(
+            @Valid @ModelAttribute WelcomeDTO welcomeDTO,
             BindingResult result
     ) {
         if (result.hasErrors()) {
@@ -64,7 +66,7 @@ public class CategoryController {
             return ResponseEntity.badRequest().body(errorMessages);
         }
         try {
-            MultipartFile file = categoryDTO.getFile(); // Chỉ lấy một file ảnh
+            MultipartFile file = welcomeDTO.getFile(); // Chỉ lấy một file ảnh
             if (file != null && file.getSize() > 0) {
                 // Kiểm tra kích thước file
                 if (file.getSize() > 10 * 1024 * 1024) { // nhỏ hơn 10MB
@@ -77,39 +79,32 @@ public class CategoryController {
                     return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
                             .body("File must be an image");
                 }
-                categoryDTO.setImageUrl(storeFile(file));
-//                // Chuyển đổi từ DTO sang Model
-//                categoryModel.setName(categoryDTO.getName());
-//                // Lưu file và lấy đường dẫn
-//                categoryModel.setImageUrl(storeFile(file)); // Gán đường dẫn ảnh vào imageUrl
+                welcomeDTO.setImageUrl(storeFile(file));
             }
-            categoryService.createCategory(categoryDTO);
+            welcomeService.createWelcome(welcomeDTO);
             return ResponseEntity.ok("Create successfully!");
-//            // Gọi hàm service để lưu category
-//            categoryService.createCategory(categoryModel);
-//            return ResponseEntity.ok(categoryModel);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
     @GetMapping("/{id}")
-    public ResponseEntity<?> getCategoryById(@PathVariable Long id) {
+    public ResponseEntity<?> getWelcomeById(@PathVariable Long id) {
         try {
-            Category category = categoryService.getCategoryById(id);
-            return ResponseEntity.ok(category);
+            Welcome welcome = welcomeService.getWelcomeById(id);
+            return ResponseEntity.ok(welcome);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
     @GetMapping
-    public ResponseEntity<List<Category>> getAllCategories() {
-        List<Category> categories = categoryService.getAllCategories();
-        return ResponseEntity.ok(categories);
+    public ResponseEntity<List<Welcome>> getAllWelcome() {
+        List<Welcome> welcomes = welcomeService.getAllWelcomes();
+        return ResponseEntity.ok(welcomes);
     }
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateCategory(
+    public ResponseEntity<?> updateWelcome(
             @PathVariable Long id,
-            @Valid @ModelAttribute CategoryDTO categoryDTO,
+            @Valid @ModelAttribute WelcomeDTO welcomeDTO,
             BindingResult result
     ) {
         if (result.hasErrors()) {
@@ -121,7 +116,7 @@ public class CategoryController {
         }
 
         try {
-            MultipartFile file = categoryDTO.getFile();
+            MultipartFile file = welcomeDTO.getFile();
             if (file != null && file.getSize() > 0) {
                 // Kiểm tra kích thước file và loại file
                 if (file.getSize() > 10 * 1024 * 1024) {
@@ -135,10 +130,10 @@ public class CategoryController {
                 }
 
                 // Cập nhật URL hình ảnh
-                categoryDTO.setImageUrl(storeFile(file));
+                welcomeDTO.setImageUrl(storeFile(file));
             }
-            Category updatedCategory = categoryService.updateCategory(id, categoryDTO);
-            return ResponseEntity.ok(updatedCategory);
+            Welcome welcome = welcomeService.updateWelcome(id, welcomeDTO);
+            return ResponseEntity.ok(welcome);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         } catch (Exception e) {
@@ -146,18 +141,18 @@ public class CategoryController {
         }
     }
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteCategory(@PathVariable Long id) {
+    public ResponseEntity<?> deleteWelcome(@PathVariable Long id) {
         try {
-            categoryService.deleteCategory(id);
-            return ResponseEntity.ok("Category deleted successfully.");
+            welcomeService.deleteWelcome(id);
+            return ResponseEntity.ok("Welcome deleted successfully.");
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
     private String storeFile(MultipartFile file) throws IOException {
-        String fileName = StringUtils.cleanPath(file.getOriginalFilename());
+        String fileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
         String uniqueFileName = UUID.randomUUID().toString() + "_" + fileName;
-        Path uploadDir = Paths.get("Uploads/Images/Categories");
+        Path uploadDir = Paths.get("Uploads/Images/Welcomes");
 
         if (!Files.exists(uploadDir)) {
             Files.createDirectories(uploadDir);
@@ -167,7 +162,7 @@ public class CategoryController {
         Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
 
         // Trả về đường dẫn để lưu vào cơ sở dữ liệu
-        return "/images/"+uniqueFileName; // Đảm bảo rằng bạn có thể truy cập ảnh qua URL này
+        return "/images/" + uniqueFileName; // Đảm bảo rằng bạn có thể truy cập ảnh qua URL này
     }
 
 }
