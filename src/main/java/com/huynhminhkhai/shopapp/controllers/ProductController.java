@@ -23,6 +23,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @RestController
@@ -34,7 +35,7 @@ public class ProductController {
     @GetMapping("/images/{imageName}")
     public ResponseEntity<?> viewImage(@PathVariable String imageName) {
         try {
-            java.nio.file.Path imagePath = Paths.get("Uploads/Images/Products/" + imageName);
+            java.nio.file.Path imagePath = Paths.get("Uploads/" + imageName);
             UrlResource resource = new UrlResource(imagePath.toUri());
 
             if (resource.exists()) {
@@ -52,8 +53,8 @@ public class ProductController {
     // GET: Lấy tất cả sản phẩm
     @GetMapping
     public ResponseEntity<List<Product>> getAllProducts() {
-        List<Product> categories = productService.getAllProducts();
-        return ResponseEntity.ok(categories);
+        List<Product> products = productService.getAllProducts();
+        return ResponseEntity.ok(products);
     }
     @GetMapping("/{id}")
     public ResponseEntity<?> getProductById(@PathVariable Long id) {
@@ -156,15 +157,19 @@ public class ProductController {
         }
     }
     private String storeFile(MultipartFile file) throws IOException {
-        String fileName = StringUtils.cleanPath(file.getOriginalFilename());
-        String unniqueFileName = UUID.randomUUID().toString()+ "_"+ fileName;
-        //java.nio.file
-        Path uploadDir = Paths.get("Uploads/Images/Products");
-        if (!Files.exists(uploadDir)){
+        String fileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
+        String uniqueFileName = UUID.randomUUID().toString() + "_" + fileName;
+        Path uploadDir = Paths.get("Uploads/");
+
+        if (!Files.exists(uploadDir)) {
             Files.createDirectories(uploadDir);
         }
-        Path destination = Paths.get(uploadDir.toString(), unniqueFileName);
+
+        Path destination = uploadDir.resolve(uniqueFileName);
         Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-        return "images"+unniqueFileName;
+
+        // Trả về đường dẫn để lưu vào cơ sở dữ liệu
+        return "/images/"+uniqueFileName; // Đảm bảo rằng bạn có thể truy cập ảnh qua URL này
     }
+
 }

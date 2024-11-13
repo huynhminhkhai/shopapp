@@ -34,10 +34,10 @@ import java.util.UUID;
 public class WelcomeController {
     private final WelcomeService welcomeService;
 
-    @GetMapping("/images/{imageName}")
+    @GetMapping("image/{imageName}")
     public ResponseEntity<?> viewImage(@PathVariable String imageName) {
         try {
-            java.nio.file.Path imagePath = Paths.get("Uploads/Images/Welcomes/" + imageName);
+            java.nio.file.Path imagePath = Paths.get("Uploads/" + imageName);
             UrlResource resource = new UrlResource(imagePath.toUri());
 
             if (resource.exists()) {
@@ -152,7 +152,7 @@ public class WelcomeController {
     private String storeFile(MultipartFile file) throws IOException {
         String fileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
         String uniqueFileName = UUID.randomUUID().toString() + "_" + fileName;
-        Path uploadDir = Paths.get("Uploads/Images/Welcomes");
+        Path uploadDir = Paths.get("Uploads/");
 
         if (!Files.exists(uploadDir)) {
             Files.createDirectories(uploadDir);
@@ -162,7 +162,7 @@ public class WelcomeController {
         Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
 
         // Trả về đường dẫn để lưu vào cơ sở dữ liệu
-        return "/images/" + uniqueFileName; // Đảm bảo rằng bạn có thể truy cập ảnh qua URL này
+        return "/image/" + uniqueFileName; // Đảm bảo rằng bạn có thể truy cập ảnh qua URL này
     }
 
 }

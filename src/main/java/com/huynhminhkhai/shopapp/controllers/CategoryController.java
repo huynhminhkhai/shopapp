@@ -22,6 +22,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @RestController
@@ -35,7 +36,7 @@ public class CategoryController {
     @GetMapping("/images/{imageName}")
     public ResponseEntity<?> viewImage(@PathVariable String imageName) {
         try {
-            java.nio.file.Path imagePath = Paths.get("Uploads/Images/Categories/" + imageName);
+            java.nio.file.Path imagePath = Paths.get("Uploads/" + imageName);
             UrlResource resource = new UrlResource(imagePath.toUri());
 
             if (resource.exists()) {
@@ -155,9 +156,9 @@ public class CategoryController {
         }
     }
     private String storeFile(MultipartFile file) throws IOException {
-        String fileName = StringUtils.cleanPath(file.getOriginalFilename());
+        String fileName = StringUtils.cleanPath(Objects.requireNonNull(file.getOriginalFilename()));
         String uniqueFileName = UUID.randomUUID().toString() + "_" + fileName;
-        Path uploadDir = Paths.get("Uploads/Images/Categories");
+        Path uploadDir = Paths.get("Uploads/");
 
         if (!Files.exists(uploadDir)) {
             Files.createDirectories(uploadDir);
