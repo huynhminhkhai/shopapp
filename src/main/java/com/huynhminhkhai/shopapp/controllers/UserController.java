@@ -46,12 +46,12 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> loginUser(
+    public ResponseEntity<?> loginUser(
             @Valid @RequestBody UserLoginDTO userLoginDTO
     ) {
         String response = userService.login(userLoginDTO.getEmail(), userLoginDTO.getPassword());
         if ("Đăng nhập thành công!".equals(response)) {
-            return ResponseEntity.ok("some token"); // Thay "some token" bằng token thực tế nếu có
+            return ResponseEntity.ok(userLoginDTO); // Thay "some token" bằng token thực tế nếu có
         } else {
             return ResponseEntity.badRequest().body(response);
         }
